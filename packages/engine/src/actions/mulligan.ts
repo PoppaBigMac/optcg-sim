@@ -3,6 +3,7 @@ import type { GameState } from "../state";
 import type { ValidationResult } from "./types";
 import { getPlayer, setPlayer } from "../state";
 import { seededShuffle } from "../rng";
+import { refreshPhase, drawPhase, donPhase } from "../phases";
 
 type MulliganAction = Extract<Action, { type: "Mulligan" }>;
 
@@ -39,9 +40,11 @@ export function apply(state: GameState, action: MulliganAction): GameState {
   // Check if both players have resolved mulligan
   const otherPlayer = getPlayer(newState, action.player === "p1" ? "p2" : "p1");
   if (otherPlayer.mulliganDone) {
-    // Both done — advance to first player's Refresh phase
-    // But on turn 1, skip Refresh and go straight to Draw
+    // Both done — auto-advance through non-interactive phases to Main
     newState = { ...newState, phase: "Refresh" };
+    newState = refreshPhase(newState);
+    newState = drawPhase(newState);
+    newState = donPhase(newState);
   }
 
   return newState;
