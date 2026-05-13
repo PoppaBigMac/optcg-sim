@@ -4,6 +4,11 @@ import type { ActionResult } from "./actions/types";
 import * as mulligan from "./actions/mulligan";
 import * as playCharacter from "./actions/playCharacter";
 import * as giveDon from "./actions/giveDon";
+import * as declareAttack from "./actions/declareAttack";
+import * as declareBlocker from "./actions/declareBlocker";
+import * as passBlock from "./actions/passBlock";
+import * as useCounter from "./actions/useCounter";
+import * as passCounter from "./actions/passCounter";
 import * as endPhaseAction from "./actions/endPhase";
 import * as surrender from "./actions/surrender";
 
@@ -32,6 +37,36 @@ export function applyAction(state: GameState, action: Action): ActionResult {
       validationResult = giveDon.validate(state, action);
       if (!validationResult.ok) return validationResult;
       nextState = giveDon.apply(state, action);
+      break;
+
+    case "DeclareAttack":
+      validationResult = declareAttack.validate(state, action);
+      if (!validationResult.ok) return validationResult;
+      nextState = declareAttack.apply(state, action);
+      break;
+
+    case "DeclareBlocker":
+      validationResult = declareBlocker.validate(state, action);
+      if (!validationResult.ok) return validationResult;
+      nextState = declareBlocker.apply(state, action);
+      break;
+
+    case "PassBlock":
+      validationResult = passBlock.validate(state, action);
+      if (!validationResult.ok) return validationResult;
+      nextState = passBlock.apply(state, action);
+      break;
+
+    case "UseCounter":
+      validationResult = useCounter.validate(state, action);
+      if (!validationResult.ok) return validationResult;
+      nextState = useCounter.apply(state, action);
+      break;
+
+    case "PassCounter":
+      validationResult = passCounter.validate(state, action);
+      if (!validationResult.ok) return validationResult;
+      nextState = passCounter.apply(state, action);
       break;
 
     case "EndPhase":

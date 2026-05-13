@@ -12,6 +12,9 @@ export function validate(state: GameState, action: EndPhaseAction): ValidationRe
   if (state.phase !== "Main") {
     return { ok: false, reason: "Can only end turn during Main phase" };
   }
+  if (state.combat) {
+    return { ok: false, reason: "Cannot end phase while combat is active" };
+  }
   return { ok: true };
 }
 

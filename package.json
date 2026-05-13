@@ -1,17 +1,19 @@
 {
-  "name": "optcg-sim",
+  "name": "prolocalbuilder",
   "version": "0.1.0",
   "private": true,
-  "description": "OPTCG multiplayer simulator — pnpm monorepo",
+  "description": "ProLocalBuilder monorepo",
   "scripts": {
     "dev:web": "pnpm --filter @optcg/web dev",
+    "dev:server": "pnpm --filter @optcg/game-server dev",
     "build:web": "pnpm --filter @optcg/web build",
+    "build:server": "pnpm --filter @optcg/game-server build",
+    "test": "pnpm -r test",
     "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test"
+    "typecheck": "pnpm -r typecheck"
   },
   "devDependencies": {
-    "typescript": "^5"
+    "typescript": "^5.7.2"
   },
   "engines": {
     "node": ">=20",

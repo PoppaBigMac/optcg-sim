@@ -1,9 +1,3 @@
-<!-- BEGIN:nextjs-agent-rules -->
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` before writing any code. Heed deprecation notices.
-<!-- END:nextjs-agent-rules -->
-
 # AGENTS.md
 
 Guidance for autonomous agents (Claude Code, Codex, etc.) working in this repo.
@@ -12,7 +6,7 @@ Guidance for autonomous agents (Claude Code, Codex, etc.) working in this repo.
 
 | Path | Purpose |
 |---|---|
-| `apps/web` | Next.js 16 game client + lobby |
+| `apps/web` | Next.js 15 marketing + client app |
 | `apps/game-server` | (future) Real-time game WebSocket server |
 | `packages/engine` | Game logic — pure TS, no I/O |
 | `packages/cards` | Card data and types |
@@ -33,7 +27,7 @@ Guidance for autonomous agents (Claude Code, Codex, etc.) working in this repo.
    `pnpm add --filter <package> <dep>` to add a dependency to a specific workspace member.
 
 5. **Verify the dev server after structural changes.** After any change to workspace config,
-   `tsconfig.json`, `next.config.ts`, or package manifests, confirm `pnpm dev:web` still starts
+   `tsconfig.json`, `next.config.mjs`, or package manifests, confirm `pnpm dev:web` still starts
    cleanly on port 3000 before finishing.
 
 ## How to run things
@@ -58,7 +52,7 @@ pnpm -r typecheck                              # typecheck all packages
 ## Supabase conventions
 
 - All Supabase client initialisation lives in `apps/web/lib/supabase/` (client-side) and in
-  `apps/game-server/lib/supabase/` (server-side, future).
+  `apps/game-server/lib/supabase/` (server-side).
 - `apps/web` uses the **anon** key (row-level security enforced).
-- `apps/game-server` will use the **service-role** key (bypasses RLS for authoritative writes).
+- `apps/game-server` uses the **service-role** key (bypasses RLS for authoritative writes).
 - Never commit `.env` files; use `.env.local` locally and environment variables in CI.

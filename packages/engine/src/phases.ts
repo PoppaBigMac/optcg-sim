@@ -10,14 +10,12 @@ function clearSummoningSickness(ci: CardInstance): CardInstance {
   return ci.summoningSickness ? { ...ci, summoningSickness: false } : ci;
 }
 
-// Refresh phase: return all attached DON to cost area (rested),
-// set all cards active, clear summoning sickness.
 export function refreshPhase(state: GameState): GameState {
-  const player = getPlayer(state, state.activePlayer);
-  let s = state;
+  let s: GameState = state.combat ? { ...state, combat: null } : state;
+  const player = getPlayer(s, s.activePlayer);
   const returnedDon: CardInstance[] = [];
 
-  // Return DON attached to leader
+  // Return DON attached to leader (§2 Phase 1: return to cost area rested)
   let leader = player.leader;
   for (let i = 0; i < leader.attachedDon; i++) {
     const { id, state: s2 } = allocateInstanceId(s);
@@ -50,12 +48,15 @@ export function refreshPhase(state: GameState): GameState {
     return ch.attachedDon > 0 ? { ...ch, attachedDon: 0 } : ch;
   });
 
+  // §2 Phase 1: ALL rested cards become active (including returned DON)
+  const allCostArea = [...player.costArea, ...returnedDon];
+
   const updatedPlayer: PlayerState = {
     ...player,
     leader: clearSummoningSickness(setActive(leader)),
     characterArea: characters.map((c) => clearSummoningSickness(setActive(c))),
     stageArea: player.stageArea.map(setActive),
-    costArea: [...player.costArea.map(setActive), ...returnedDon],
+    costArea: allCostArea.map(setActive),
     givenDonThisTurn: 0,
   };
 
@@ -124,6 +125,7 @@ export function endPhaseFn(state: GameState): GameState {
     ...player,
     leader: clearModifiers(player.leader),
     characterArea: player.characterArea.map(clearModifiers),
+    hasTakenFirstTurn: true,
   };
 
   const nextPlayer = state.activePlayer === "p1" ? "p2" : "p1";

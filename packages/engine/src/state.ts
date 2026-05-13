@@ -1,5 +1,16 @@
 import type { Card, Phase, PlayerSlot, Action } from "@optcg/shared-types";
 
+export type CombatStep = "block" | "counter" | "damage";
+
+export interface CombatState {
+  readonly attackerPlayer: PlayerSlot;
+  readonly attackerInstanceId: string;
+  readonly targetKind: "leader" | "character";
+  readonly targetInstanceId: string;
+  readonly step: CombatStep;
+  readonly powerBoost: number;
+}
+
 export interface CardInstance {
   readonly instanceId: string;
   readonly card: Card;
@@ -28,6 +39,7 @@ export interface PlayerState {
   readonly givenDonThisTurn: number;
   readonly isFirstPlayer: boolean;
   readonly mulliganDone: boolean;
+  readonly hasTakenFirstTurn: boolean;
 }
 
 export interface GameState {
@@ -41,6 +53,7 @@ export interface GameState {
   readonly nextInstanceId: number;
   readonly actionLog: readonly Action[];
   readonly winner: PlayerSlot | null;
+  readonly combat: CombatState | null;
 }
 
 export function allocateInstanceId(state: GameState): { id: string; state: GameState } {

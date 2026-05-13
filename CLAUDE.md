@@ -5,9 +5,9 @@ Developer guide for AI agents working in this monorepo.
 ## Repo layout
 
 ```
-optcg-sim/
+prolocalbuilder/
 ├── apps/
-│   ├── web/            Next.js 16 client app (@optcg/web)
+│   ├── web/            Next.js 15 marketing site (@optcg/web)
 │   └── game-server/    (future) WebSocket game server — sole writer of live match state
 ├── packages/
 │   ├── engine/         (@optcg/engine) All game logic lives here, nowhere else
@@ -18,48 +18,40 @@ optcg-sim/
 └── tsconfig.json       Root TypeScript base config with @optcg/* path aliases
 ```
 
-## Architecture
+## Architectural rules
 
-**Stack:** Next.js 16 (App Router), Supabase (Realtime + PostgreSQL), Tailwind CSS 4, TypeScript strict mode.
-
-**Purpose:** Browser-based multiplayer One Piece TCG simulator. Two players join a game room via a shared code and play in real time.
-
-### Architectural rules
-
-**Game logic (packages/engine)**
-- All game logic lives only in `packages/engine`. Do not implement rules, state machines, or
+### Game logic (packages/engine)
+- **All game logic lives only in `packages/engine`.** Do not implement rules, state machines, or
   card effects in `apps/web` or `apps/game-server` directly — import from `@optcg/engine` instead.
 - `packages/engine` must be pure TypeScript with zero runtime dependencies on Node or browser APIs.
 
-**Live match state (apps/game-server)**
-- `apps/game-server` is the only process permitted to write live match state.
+### Live match state (apps/game-server)
+- **`apps/game-server` is the only process permitted to write live match state.**
 - `apps/web` must never write match state directly; it reads via subscriptions or REST snapshots.
 
-**Persisted data (Supabase)**
-- Supabase is the source of truth for all persisted data (user accounts, deck lists, match
+### Persisted data (Supabase)
+- **Supabase is the source of truth for all persisted data** (user accounts, deck lists, match
   history, card catalog).
 - `apps/game-server` writes match results to Supabase when a game ends.
 - `apps/web` reads persisted data from Supabase (read-only from the browser).
 
-### Multiplayer layer
-- Supabase Realtime channels — one channel per game, keyed by `game:{gameId}`
-- Broadcast for game events (card plays, phase changes, etc.)
-- Presence for player connection state
-- Game state stored in `games` table, updated via Server Actions
+## Package manager
 
-## Commands
+This repo uses **pnpm workspaces**. Always use `pnpm`, never `npm` or `yarn`.
 
 ```bash
-pnpm install                                   # install all workspace deps
-pnpm dev:web                                   # run apps/web on port 3000
-pnpm build:web                                 # production build of apps/web
-pnpm -r typecheck                              # typecheck all packages
-pnpm -r lint                                   # lint all packages
-pnpm --filter @optcg/web <script>              # target apps/web specifically
-pnpm --filter @optcg/engine <script>           # target packages/engine specifically
+pnpm install            # install all workspace deps
+pnpm dev:web            # run apps/web on port 3000
+pnpm dev:server         # run apps/game-server on port 4000
+pnpm build:web          # production build of apps/web
+pnpm build:server       # compile apps/game-server to dist/
+pnpm test               # run all tests (engine + game-server)
+pnpm -r typecheck       # typecheck all packages
+pnpm -r lint            # lint all packages
+pnpm --filter @optcg/web <script>            # target apps/web
+pnpm --filter @optcg/engine <script>         # target packages/engine
+pnpm --filter @optcg/game-server <script>    # target apps/game-server
 ```
-
-Always use `pnpm`, never `npm` or `yarn`.
 
 ## TypeScript path aliases
 
@@ -75,28 +67,28 @@ The root `tsconfig.json` declares:
 
 ## Working in apps/web
 
-- Next.js 16 App Router. All pages live under `apps/web/app/`.
-- Route structure:
-  - `app/page.tsx` — landing: create or join a game
-  - `app/(game)/[gameId]/page.tsx` — the game board (protected, must be a participant)
-  - `app/(game)/[gameId]/lobby/page.tsx` — waiting room before game starts
-- Type definitions: `types/game.ts` — `GameState`, `PlayerState`, `CardInstance`, `GameEvent`, `GamePhase`
-- Supabase clients:
-  - `lib/supabase/client.ts` — browser client (use in Client Components)
-  - `lib/supabase/server.ts` — server client (use in Server Components / Server Actions)
+- Next.js 15 App Router. All pages live under `apps/web/app/`.
+- Components under `apps/web/components/`, shared constants under `apps/web/lib/`.
 - Run the dev server: `pnpm dev:web` (port 3000).
+- Tailwind brand tokens are defined in `apps/web/tailwind.config.ts` — never use arbitrary values.
+- CSP is strict in production; if you add a new external resource you must update
+  `apps/web/next.config.mjs`.
 
-## Database
+## Working in apps/game-server
 
-See `apps/web/supabase/schema.sql`. Tables:
-- `games` — one row per game session
-- `game_players` — maps users to game slots (p1/p2)
+- Fastify HTTP server on port 4000 with WebSocket upgrade on `/ws`.
+- Run the dev server: `pnpm dev:server`.
+- Uses `@optcg/engine` for all game state mutations — the server is a thin transport layer.
+- All client↔server messages validated with zod schemas in `src/protocol.ts`.
+- Phase 0: in-memory state only, no Supabase. Auth stub assigns UUID per connection.
+- Tests use an ephemeral-port harness with raw `ws` clients.
 
-RLS: players can only read/write games they are a participant in.
+## Git remotes
 
-## Key rules
+| Remote | URL | Purpose |
+|---|---|---|
+| `origin` | `github.com/daculturedswine/prolocalbuilder-web` | Main remote |
+| `external-engine` | `Desktop/optcg-sim` (local path) | Source repo for `@optcg/engine`, `@optcg/shared-types`, `@optcg/cards` |
 
-- Game logic in `packages/engine` must be pure — no fetch, no Supabase, no side effects
-- State updates always go through a Server Action, never direct client mutations
-- TypeScript strict mode — no `any`
-- Tailwind only — no inline styles
+To import engine updates: `git fetch external-engine && git checkout external-engine/master -- packages/<pkg>/src/`.
+**Never copy files from outside the repo via filesystem** — always use git to bring in code from other branches or remotes.

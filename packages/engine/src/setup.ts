@@ -67,6 +67,7 @@ function buildPlayerState(
     givenDonThisTurn: 0,
     isFirstPlayer,
     mulliganDone: false,
+    hasTakenFirstTurn: false,
   };
 
   return { player, rngState: rng1 };
@@ -109,5 +110,6 @@ export function createInitialState(
     nextInstanceId: instanceCounter + 1,
     actionLog: [],
     winner: null,
+    combat: null,
   };
 }
