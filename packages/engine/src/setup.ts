@@ -15,11 +15,7 @@ function makeInstance(card: Card): CardInstance {
   };
 }
 
-function resetInstanceCounter(): void {
-  instanceCounter = 0;
-}
-
-function makeDonCard(): Card {
+export function makeDonCard(): Card {
   return {
     id: "DON",
     name: "DON!!",
@@ -47,8 +43,7 @@ function buildPlayerState(
   const { result: shuffledDeck, rngState: rng1 } = seededShuffle(deckInstances, rngState);
 
   // Life setup: take top cards equal to leader's life value.
-  // Per rules §1: the top of the deck becomes the bottom of the life pile.
-  // So cards drawn first from deck (index 0) go to the bottom of life (end of array).
+  // Per rules: the top of the deck becomes the bottom of the life pile.
   const lifeCount = leader.life;
   const lifeCards = shuffledDeck.splice(0, lifeCount);
   lifeCards.reverse();
@@ -88,7 +83,7 @@ export function createInitialState(
   seed: number,
   firstPlayer: PlayerSlot = "p1",
 ): GameState {
-  resetInstanceCounter();
+  instanceCounter = 0;
 
   const { player: p1, rngState: rng1 } = buildPlayerState(
     p1Deck.leader,
@@ -111,6 +106,7 @@ export function createInitialState(
     p2,
     rngSeed: seed,
     rngState: rng2,
+    nextInstanceId: instanceCounter + 1,
     actionLog: [],
     winner: null,
   };

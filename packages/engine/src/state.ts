@@ -38,8 +38,14 @@ export interface GameState {
   readonly p2: PlayerState;
   readonly rngSeed: number;
   readonly rngState: number;
+  readonly nextInstanceId: number;
   readonly actionLog: readonly Action[];
   readonly winner: PlayerSlot | null;
+}
+
+export function allocateInstanceId(state: GameState): { id: string; state: GameState } {
+  const id = `ci_${state.nextInstanceId}`;
+  return { id, state: { ...state, nextInstanceId: state.nextInstanceId + 1 } };
 }
 
 export function getPlayer(state: GameState, player: PlayerSlot): PlayerState {
