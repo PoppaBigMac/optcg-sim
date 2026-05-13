@@ -5,6 +5,13 @@
   "main": "./src/index.ts",
   "types": "./src/index.ts",
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@optcg/shared-types": "workspace:*"
+  },
+  "devDependencies": {
+    "vitest": "^3.2.1"
   }
 }
