@@ -26,6 +26,7 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
   const [selectedDonIds, setSelectedDonIds] = useState<string[]>([]);
+  const [logOpen, setLogOpen] = useState(false);
 
   const me = getPlayer(state, mySlot);
   const opp = getPlayer(state, opponent(mySlot));
@@ -56,78 +57,96 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
   );
 
   return (
-    <div className="flex flex-col gap-2 w-full max-w-3xl mx-auto px-2">
-      {/* Phase indicator */}
-      <PhaseIndicator
-        phase={state.phase}
-        activePlayer={state.activePlayer}
-        mySlot={mySlot}
-        turn={state.turnNumber}
-      />
-
-      {/* Opponent area */}
-      <div className="border border-ink-200 rounded-lg p-2 bg-ink-50 space-y-1">
-        <div className="flex items-center justify-between text-xs text-ink-400 px-1">
-          <span>Opponent ({opponent(mySlot)})</span>
-        </div>
-        <Hand cards={opp.hand} isOpponent selectedId={null} onSelect={() => {}} />
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
-          <LifeStack count={opp.life.length} />
-          <LeaderView
-            leader={opp.leader}
-            selected={selectedTargetId === opp.leader.instanceId}
-            onClick={() => handleSelectTarget(opp.leader.instanceId)}
-          />
-          <DeckPile count={opp.deck.length} />
-          <Trash count={opp.trash.length} />
-        </div>
-        <CharacterArea
-          characters={opp.characterArea}
-          selectedId={selectedTargetId}
-          onSelect={handleSelectTarget}
+    <div className="flex items-start gap-2 w-full">
+      {/* Game board */}
+      <div className="flex-1 min-w-0 flex flex-col gap-2">
+        <PhaseIndicator
+          phase={state.phase}
+          activePlayer={state.activePlayer}
+          mySlot={mySlot}
+          turn={state.turnNumber}
         />
+
+        {/* Opponent area */}
+        <div className="border border-ink-200 rounded-lg p-2 bg-ink-50 space-y-1">
+          <div className="flex items-center justify-between text-xs text-ink-400 px-1">
+            <span>Opponent ({opponent(mySlot)})</span>
+          </div>
+          <Hand cards={opp.hand} isOpponent selectedId={null} onSelect={() => {}} />
+          <div className="flex items-center justify-center gap-2 sm:gap-4">
+            <LifeStack count={opp.life.length} />
+            <LeaderView
+              leader={opp.leader}
+              selected={selectedTargetId === opp.leader.instanceId}
+              onClick={() => handleSelectTarget(opp.leader.instanceId)}
+            />
+            <DeckPile count={opp.deck.length} />
+            <Trash count={opp.trash.length} />
+          </div>
+          <CharacterArea
+            characters={opp.characterArea}
+            selectedId={selectedTargetId}
+            onSelect={handleSelectTarget}
+          />
+        </div>
+
+        <ActionPanel
+          mySlot={mySlot}
+          phase={state.phase}
+          activePlayer={state.activePlayer}
+          myState={me}
+          opponentState={opp}
+          combat={state.combat}
+          selectedCardId={selectedCardId}
+          selectedTargetId={selectedTargetId}
+          selectedDonIds={selectedDonIds}
+          onAction={handleAction}
+        />
+
+        {/* My area */}
+        <div className="border border-ink-200 rounded-lg p-2 bg-white space-y-1">
+          <CharacterArea
+            characters={me.characterArea}
+            selectedId={selectedCardId}
+            onSelect={handleSelectCard}
+          />
+          <div className="flex items-center justify-center gap-2 sm:gap-4">
+            <LifeStack count={me.life.length} />
+            <LeaderView
+              leader={me.leader}
+              selected={selectedCardId === me.leader.instanceId}
+              onClick={() => handleSelectCard(me.leader.instanceId)}
+            />
+            <DeckPile count={me.deck.length} />
+            <Trash count={me.trash.length} />
+          </div>
+          <CostArea don={me.costArea} selectedIds={selectedDonIds} onToggle={handleToggleDon} />
+          <Hand cards={me.hand} isOpponent={false} selectedId={selectedCardId} onSelect={handleSelectCard} />
+          <div className="text-xs text-ink-400 text-center">
+            You ({mySlot})
+          </div>
+        </div>
       </div>
 
-      {/* Action panel */}
-      <ActionPanel
-        mySlot={mySlot}
-        phase={state.phase}
-        activePlayer={state.activePlayer}
-        myState={me}
-        opponentState={opp}
-        combat={state.combat}
-        selectedCardId={selectedCardId}
-        selectedTargetId={selectedTargetId}
-        selectedDonIds={selectedDonIds}
-        onAction={handleAction}
-      />
-
-      {/* My area */}
-      <div className="border border-ink-200 rounded-lg p-2 bg-white space-y-1">
-        <CharacterArea
-          characters={me.characterArea}
-          selectedId={selectedCardId}
-          onSelect={handleSelectCard}
-        />
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
-          <LifeStack count={me.life.length} />
-          <LeaderView
-            leader={me.leader}
-            selected={selectedCardId === me.leader.instanceId}
-            onClick={() => handleSelectCard(me.leader.instanceId)}
+      {/* Collapsible action log sidebar */}
+      <div
+        className={`shrink-0 flex flex-col border border-ink-200 rounded-lg bg-white overflow-hidden transition-[width] duration-200${logOpen ? " w-52" : " w-8"}`}
+      >
+        <button
+          type="button"
+          onClick={() => setLogOpen((v) => !v)}
+          className="shrink-0 flex items-center justify-center h-8 text-ink-400 hover:bg-ink-50 hover:text-ink-600 text-xs font-mono"
+          title={logOpen ? "Collapse log" : "Expand log"}
+        >
+          {logOpen ? "▶" : "◀"}
+        </button>
+        {logOpen && (
+          <ActionLog
+            actions={actionLog}
+            className="h-auto max-h-[520px] border-0 rounded-none"
           />
-          <DeckPile count={me.deck.length} />
-          <Trash count={me.trash.length} />
-        </div>
-        <CostArea don={me.costArea} selectedIds={selectedDonIds} onToggle={handleToggleDon} />
-        <Hand cards={me.hand} isOpponent={false} selectedId={selectedCardId} onSelect={handleSelectCard} />
-        <div className="text-xs text-ink-400 text-center">
-          You ({mySlot})
-        </div>
+        )}
       </div>
-
-      {/* Action log */}
-      <ActionLog actions={actionLog} />
     </div>
   );
 }
