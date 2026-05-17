@@ -2,6 +2,7 @@ import type { Action } from "@optcg/shared-types";
 import type { GameState } from "../state";
 import type { ValidationResult } from "./types";
 import { getPlayer, setPlayer, opponent } from "../state";
+import { hasUnblockable } from "../keywords";
 
 type DeclareBlockerAction = Extract<Action, { type: "DeclareBlocker" }>;
 
@@ -34,6 +35,17 @@ export function validate(state: GameState, action: DeclareBlockerAction): Valida
   );
   if (!hasBlockerKeyword) {
     return { ok: false, reason: "Character does not have [Blocker] keyword" };
+  }
+
+  // Unblockable attacker cannot be blocked
+  const combat = state.combat;
+  const attackerPlayer = getPlayer(state, combat.attackerPlayer);
+  const attacker =
+    attackerPlayer.leader.instanceId === combat.attackerInstanceId
+      ? attackerPlayer.leader
+      : attackerPlayer.characterArea.find((c) => c.instanceId === combat.attackerInstanceId);
+  if (attacker && hasUnblockable(attacker)) {
+    return { ok: false, reason: "Attacker has [Unblockable] and cannot be blocked" };
   }
 
   return { ok: true };
