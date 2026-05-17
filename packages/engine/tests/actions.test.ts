@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { createInitialState } from "../src/setup";
 import { applyAction } from "../src/engine";
-import { getPlayer } from "../src/state";
+import { getPlayer, setPlayer } from "../src/state";
+import type { CardInstance } from "../src/state";
 import { vanillaRedLeader, vanillaRedDeck } from "../../cards/src/decks/vanilla-red";
 import { vanillaGreenLeader, vanillaGreenDeck } from "../../cards/src/decks/vanilla-green";
 import type { GameState } from "../src/state";
@@ -170,6 +171,87 @@ describe("surrender", () => {
     let state = makeState();
     state = applyOk(state, { type: "Surrender", player: "p1" });
     const result = applyAction(state, { type: "Surrender", player: "p2" });
+    expect(result.ok).toBe(false);
+  });
+});
+
+describe("useCounter", () => {
+  const ATTACKER: CardInstance = {
+    instanceId: "atk_ctr",
+    card: {
+      id: "t", name: "T", cost: 0, power: 9000, counter: 0,
+      colors: ["Red"], type: "Character", attributes: ["Strike"],
+      traits: [], life: 0, effects: [],
+    },
+    attachedDon: 0, rested: false, summoningSickness: false, modifiers: [],
+  };
+
+  const COUNTER_CARD: CardInstance = {
+    instanceId: "ctr_001",
+    card: {
+      id: "ctr", name: "Counter Card", cost: 0, power: 0, counter: 2000,
+      colors: ["Red"], type: "Character", attributes: ["Strike"],
+      traits: [], life: 0, effects: [],
+    },
+    attachedDon: 0, rested: false, summoningSickness: false, modifiers: [],
+  };
+
+  function reachCounterStep(): GameState {
+    let s = applyOk(makeState(), { type: "Mulligan", player: "p1", keep: true });
+    s = applyOk(s, { type: "Mulligan", player: "p2", keep: true });
+    s = applyOk(s, { type: "EndPhase", player: "p1" });
+    s = applyOk(s, { type: "EndPhase", player: "p2" });
+    s = setPlayer(s, "p1", { ...getPlayer(s, "p1"), characterArea: [ATTACKER] });
+    s = applyOk(s, {
+      type: "DeclareAttack", player: "p1",
+      attackerInstanceId: "atk_ctr",
+      targetInstanceId: getPlayer(s, "p2").leader.instanceId,
+    });
+    s = applyOk(s, { type: "PassBlock", player: "p2" });
+    return s;
+  }
+
+  it("adds counter card value to combat power boost", () => {
+    let state = reachCounterStep();
+    const p2 = getPlayer(state, "p2");
+    state = setPlayer(state, "p2", { ...p2, hand: [...p2.hand, COUNTER_CARD] });
+
+    state = applyOk(state, {
+      type: "UseCounter", player: "p2",
+      cardInstanceId: "ctr_001",
+    });
+
+    expect(state.combat?.powerBoost).toBe(2000);
+  });
+
+  it("moves counter card from hand to trash", () => {
+    let state = reachCounterStep();
+    const p2 = getPlayer(state, "p2");
+    state = setPlayer(state, "p2", { ...p2, hand: [...p2.hand, COUNTER_CARD] });
+
+    state = applyOk(state, {
+      type: "UseCounter", player: "p2",
+      cardInstanceId: "ctr_001",
+    });
+
+    const p2After = getPlayer(state, "p2");
+    expect(p2After.hand.find((c) => c.instanceId === "ctr_001")).toBeUndefined();
+    expect(p2After.trash.find((c) => c.instanceId === "ctr_001")).toBeDefined();
+  });
+
+  it("rejects UseCounter when not in combat", () => {
+    const state = pastMulligan(makeState());
+    const result = applyAction(state, { type: "UseCounter", player: "p2", cardInstanceId: "fake" });
+    expect(result.ok).toBe(false);
+  });
+
+  it("rejects UseCounter with a card that has no counter value", () => {
+    let state = reachCounterStep();
+    const p2 = getPlayer(state, "p2");
+    const noCounter: CardInstance = { ...COUNTER_CARD, instanceId: "nc", card: { ...COUNTER_CARD.card, counter: 0 } };
+    state = setPlayer(state, "p2", { ...p2, hand: [...p2.hand, noCounter] });
+
+    const result = applyAction(state, { type: "UseCounter", player: "p2", cardInstanceId: "nc" });
     expect(result.ok).toBe(false);
   });
 });
