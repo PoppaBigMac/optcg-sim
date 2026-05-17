@@ -1,7 +1,7 @@
 "use client";
 
 import type { Action, PlayerSlot, Phase } from "@optcg/shared-types";
-import type { PlayerState, CardInstance, CombatState } from "@optcg/engine";
+import type { PlayerState, CombatState } from "@optcg/engine";
 import { Button } from "@/components/ui/button";
 
 interface ActionPanelProps {
@@ -13,7 +13,6 @@ interface ActionPanelProps {
   combat: CombatState | null;
   selectedCardId: string | null;
   selectedTargetId: string | null;
-  selectedDonIds: string[];
   onAction: (action: Action) => void;
 }
 
@@ -26,10 +25,14 @@ export function ActionPanel({
   combat,
   selectedCardId,
   selectedTargetId,
-  selectedDonIds,
   onAction,
 }: ActionPanelProps) {
   const isMyTurn = activePlayer === mySlot;
+
+  const activeDon = myState.costArea.filter((d) => !d.rested);
+  const autoSelectDon = (cost: number): string[] =>
+    activeDon.slice(0, cost).map((d) => d.instanceId);
+  const canAfford = (cost: number): boolean => activeDon.length >= cost;
 
   if (phase === "Mulligan") {
     if (!myState.mulliganDone) {
@@ -130,11 +133,6 @@ export function ActionPanel({
     return <div className="text-center text-sm text-ink-400">Opponent&apos;s turn — waiting...</div>;
   }
 
-  const selectedCard = selectedCardId
-    ? myState.hand.find((c) => c.instanceId === selectedCardId) ??
-      myState.characterArea.find((c) => c.instanceId === selectedCardId)
-    : null;
-
   const handCard = selectedCardId
     ? myState.hand.find((c) => c.instanceId === selectedCardId)
     : null;
@@ -149,52 +147,58 @@ export function ActionPanel({
       {phase === "Main" && handCard && handCard.card.type === "Character" && (
         <Button
           size="sm"
+          disabled={!canAfford(handCard.card.cost)}
+          title={!canAfford(handCard.card.cost) ? `Need ${handCard.card.cost} DON` : undefined}
           onClick={() =>
             onAction({
               type: "PlayCharacter",
               player: mySlot,
               cardInstanceId: handCard.instanceId,
-              donToRest: selectedDonIds,
+              donToRest: autoSelectDon(handCard.card.cost),
             })
           }
         >
-          Play {handCard.card.name}
+          Play {handCard.card.name} ({handCard.card.cost} DON)
         </Button>
       )}
 
       {phase === "Main" && handCard && handCard.card.type === "Stage" && (
         <Button
           size="sm"
+          disabled={!canAfford(handCard.card.cost)}
+          title={!canAfford(handCard.card.cost) ? `Need ${handCard.card.cost} DON` : undefined}
           onClick={() =>
             onAction({
               type: "PlayStage",
               player: mySlot,
               cardInstanceId: handCard.instanceId,
-              donToRest: selectedDonIds,
+              donToRest: autoSelectDon(handCard.card.cost),
             })
           }
         >
-          Play Stage
+          Play Stage ({handCard.card.cost} DON)
         </Button>
       )}
 
       {phase === "Main" && handCard && handCard.card.type === "Event" && (
         <Button
           size="sm"
+          disabled={!canAfford(handCard.card.cost)}
+          title={!canAfford(handCard.card.cost) ? `Need ${handCard.card.cost} DON` : undefined}
           onClick={() =>
             onAction({
               type: "PlayEvent",
               player: mySlot,
               cardInstanceId: handCard.instanceId,
-              donToRest: selectedDonIds,
+              donToRest: autoSelectDon(handCard.card.cost),
             })
           }
         >
-          Play Event
+          Play Event ({handCard.card.cost} DON)
         </Button>
       )}
 
-      {phase === "Main" && selectedDonIds.length === 1 && (() => {
+      {phase === "Main" && activeDon.length > 0 && (() => {
         const donTarget = selectedCardId
           ? (myState.leader.instanceId === selectedCardId
               ? myState.leader
@@ -210,7 +214,7 @@ export function ActionPanel({
               onAction({
                 type: "GiveDon",
                 player: mySlot,
-                donInstanceId: selectedDonIds[0],
+                donInstanceId: activeDon[0].instanceId,
                 targetInstanceId: targetId,
               })
             }

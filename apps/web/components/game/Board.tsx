@@ -25,10 +25,13 @@ interface BoardProps {
 export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
-  const [selectedDonIds, setSelectedDonIds] = useState<string[]>([]);
 
   const me = getPlayer(state, mySlot);
   const opp = getPlayer(state, opponent(mySlot));
+
+  const selectedHandCard = selectedCardId
+    ? me.hand.find((c) => c.instanceId === selectedCardId) ?? null
+    : null;
 
   const handleSelectCard = useCallback((id: string) => {
     setSelectedCardId((prev) => (prev === id ? null : id));
@@ -39,18 +42,11 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
     setSelectedTargetId((prev) => (prev === id ? null : id));
   }, []);
 
-  const handleToggleDon = useCallback((id: string) => {
-    setSelectedDonIds((prev) =>
-      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
-    );
-  }, []);
-
   const handleAction = useCallback(
     (action: Action) => {
       onAction(action);
       setSelectedCardId(null);
       setSelectedTargetId(null);
-      setSelectedDonIds([]);
     },
     [onAction],
   );
@@ -70,6 +66,7 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
         <div className="flex items-center justify-between text-xs text-ink-400 px-1">
           <span>Opponent ({opponent(mySlot)})</span>
         </div>
+        <CostArea don={opp.costArea} isOpponent />
         <Hand cards={opp.hand} isOpponent selectedId={null} onSelect={() => {}} />
         <div className="flex items-center justify-center gap-2 sm:gap-4">
           <LifeStack count={opp.life.length} />
@@ -98,7 +95,6 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
         combat={state.combat}
         selectedCardId={selectedCardId}
         selectedTargetId={selectedTargetId}
-        selectedDonIds={selectedDonIds}
         onAction={handleAction}
       />
 
@@ -119,7 +115,7 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
           <DeckPile count={me.deck.length} />
           <Trash count={me.trash.length} />
         </div>
-        <CostArea don={me.costArea} selectedIds={selectedDonIds} onToggle={handleToggleDon} />
+        <CostArea don={me.costArea} pendingCost={selectedHandCard?.card.cost ?? 0} />
         <Hand cards={me.hand} isOpponent={false} selectedId={selectedCardId} onSelect={handleSelectCard} />
         <div className="text-xs text-ink-400 text-center">
           You ({mySlot})
