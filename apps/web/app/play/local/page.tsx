@@ -5,7 +5,7 @@ import { Toaster, toast } from "sonner";
 import { createInitialState, applyAction, getPlayer, opponent } from "@optcg/engine";
 import type { GameState } from "@optcg/engine";
 import type { Action, PlayerSlot } from "@optcg/shared-types";
-import { vanillaRedLeader, vanillaRedDeck, vanillaGreenLeader, vanillaGreenDeck } from "@optcg/cards";
+import { keywordRedLeader, keywordRedDeck, vanillaGreenLeader, vanillaGreenDeck } from "@optcg/cards";
 import { Board } from "@/components/game/Board";
 import { Button } from "@/components/ui/button";
 
@@ -26,7 +26,7 @@ export default function LocalPlayPage() {
   const startGame = useCallback(() => {
     const seed = Math.floor(Math.random() * 1_000_000);
     const initial = createInitialState(
-      { leader: vanillaRedLeader, cards: vanillaRedDeck },
+      { leader: keywordRedLeader, cards: keywordRedDeck },
       { leader: vanillaGreenLeader, cards: vanillaGreenDeck },
       seed,
       "p1",
@@ -60,7 +60,7 @@ export default function LocalPlayPage() {
         <div className="max-w-sm mx-auto space-y-6 p-4 text-center">
           <h1 className="text-2xl font-bold">Local Hot-Seat</h1>
           <p className="text-sm text-ink-400">
-            P1 = Vanilla Red &middot; P2 = Vanilla Green
+            P1 = Keyword Red (DA / Unblockable / Blocker) &middot; P2 = Vanilla Green
           </p>
           <Button onClick={startGame} className="w-full">
             Start Match
