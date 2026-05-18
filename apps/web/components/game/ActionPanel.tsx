@@ -292,7 +292,7 @@ export function ActionPanel({
       {phase === "Main" && attackerCard && attackTarget && (
         <Button
           size="sm"
-          variant="secondary"
+          variant="destructive"
           onClick={() =>
             onAction({
               type: "DeclareAttack",
