@@ -7,9 +7,10 @@ interface CharacterAreaProps {
   characters: readonly CardInstance[];
   selectedId: string | null;
   onSelect: (instanceId: string) => void;
+  donAttachMode?: boolean;
 }
 
-export function CharacterArea({ characters, selectedId, onSelect }: CharacterAreaProps) {
+export function CharacterArea({ characters, selectedId, onSelect, donAttachMode }: CharacterAreaProps) {
   return (
     <div className="flex gap-1 justify-center min-h-[4.5rem] sm:min-h-[7.5rem]">
       {characters.length === 0 && (
@@ -22,6 +23,7 @@ export function CharacterArea({ characters, selectedId, onSelect }: CharacterAre
           key={card.instanceId}
           card={card}
           selected={selectedId === card.instanceId}
+          highlightAsTarget={donAttachMode}
           onClick={() => onSelect(card.instanceId)}
         />
       ))}

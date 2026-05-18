@@ -198,33 +198,7 @@ export function ActionPanel({
         </Button>
       )}
 
-      {phase === "Main" && activeDon.length > 0 && (() => {
-        const donTarget = selectedCardId
-          ? (myState.leader.instanceId === selectedCardId
-              ? myState.leader
-              : myState.characterArea.find((c) => c.instanceId === selectedCardId)) ?? null
-          : null;
-        const targetId = donTarget ? donTarget.instanceId : myState.leader.instanceId;
-        const targetName = donTarget ? donTarget.card.name : myState.leader.card.name;
-        return (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              onAction({
-                type: "GiveDon",
-                player: mySlot,
-                donInstanceId: activeDon[0].instanceId,
-                targetInstanceId: targetId,
-              })
-            }
-          >
-            DON → {targetName}
-          </Button>
-        );
-      })()}
-
-      {phase === "Main" && attackerCard && (
+{phase === "Main" && attackerCard && (
         <Button
           size="sm"
           variant="secondary"

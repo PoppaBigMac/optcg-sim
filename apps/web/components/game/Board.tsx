@@ -25,6 +25,7 @@ interface BoardProps {
 export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
+  const [selectedDonId, setSelectedDonId] = useState<string | null>(null);
   const [logOpen, setLogOpen] = useState(false);
 
   const me = getPlayer(state, mySlot);
@@ -37,10 +38,17 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
   const handleSelectCard = useCallback((id: string) => {
     setSelectedCardId((prev) => (prev === id ? null : id));
     setSelectedTargetId(null);
+    setSelectedDonId(null);
   }, []);
 
   const handleSelectTarget = useCallback((id: string) => {
     setSelectedTargetId((prev) => (prev === id ? null : id));
+  }, []);
+
+  const handleSelectDon = useCallback((donId: string) => {
+    setSelectedDonId((prev) => (prev === donId ? null : donId));
+    setSelectedCardId(null);
+    setSelectedTargetId(null);
   }, []);
 
   const handleAction = useCallback(
@@ -48,9 +56,30 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
       onAction(action);
       setSelectedCardId(null);
       setSelectedTargetId(null);
+      setSelectedDonId(null);
     },
     [onAction],
   );
+
+  const handleMyClick = useCallback(
+    (id: string) => {
+      if (selectedDonId) {
+        handleAction({
+          type: "GiveDon",
+          player: mySlot,
+          donInstanceId: selectedDonId,
+          targetInstanceId: id,
+        });
+      } else {
+        setSelectedCardId((prev) => (prev === id ? null : id));
+        setSelectedTargetId(null);
+        setSelectedDonId(null);
+      }
+    },
+    [selectedDonId, mySlot, handleAction],
+  );
+
+  const canAttachDon = state.phase === "Main" && state.activePlayer === mySlot;
 
   return (
     <div className="flex items-stretch gap-2 w-full">
@@ -124,19 +153,26 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
           <CharacterArea
             characters={me.characterArea}
             selectedId={selectedCardId}
-            onSelect={handleSelectCard}
+            onSelect={handleMyClick}
+            donAttachMode={!!selectedDonId}
           />
           <div className="flex items-center justify-center gap-2 sm:gap-4">
             <LifeStack count={me.life.length} />
             <LeaderView
               leader={me.leader}
               selected={selectedCardId === me.leader.instanceId}
-              onClick={() => handleSelectCard(me.leader.instanceId)}
+              highlightAsTarget={!!selectedDonId}
+              onClick={() => handleMyClick(me.leader.instanceId)}
             />
             <DeckPile count={me.deck.length} />
             <Trash count={me.trash.length} />
           </div>
-          <CostArea don={me.costArea} pendingCost={selectedHandCard?.card.cost ?? 0} />
+          <CostArea
+            don={me.costArea}
+            pendingCost={selectedHandCard?.card.cost ?? 0}
+            selectedDonId={selectedDonId}
+            onSelectDon={canAttachDon && !selectedHandCard ? handleSelectDon : undefined}
+          />
           <Hand cards={me.hand} isOpponent={false} selectedId={selectedCardId} onSelect={handleSelectCard} />
           <div className="text-xs text-ink-400 text-center">
             You ({mySlot})
