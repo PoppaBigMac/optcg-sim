@@ -17,6 +17,64 @@ interface ActionPanelProps {
   onAction: (action: Action) => void;
 }
 
+function effectivePower(card: CardInstance, isActivePlayer: boolean): number {
+  const donBoost = isActivePlayer ? card.attachedDon * 1000 : 0;
+  const modBoost = card.modifiers.reduce((sum, m) => sum + m.powerDelta, 0);
+  return card.card.power + donBoost + modBoost;
+}
+
+function findCard(ps: PlayerState, instanceId: string): CardInstance | undefined {
+  if (ps.leader.instanceId === instanceId) return ps.leader;
+  return ps.characterArea.find((c) => c.instanceId === instanceId);
+}
+
+function CombatMatchup({
+  combat,
+  mySlot,
+  myState,
+  opponentState,
+  activePlayer,
+}: {
+  combat: CombatState;
+  mySlot: PlayerSlot;
+  myState: PlayerState;
+  opponentState: PlayerState;
+  activePlayer: PlayerSlot;
+}) {
+  const attackerState = combat.attackerPlayer === mySlot ? myState : opponentState;
+  const defenderSlot = combat.attackerPlayer === "p1" ? "p2" : "p1";
+  const defenderState = defenderSlot === mySlot ? myState : opponentState;
+
+  const attacker = findCard(attackerState, combat.attackerInstanceId);
+  const defender = findCard(defenderState, combat.targetInstanceId);
+
+  if (!attacker || !defender) return null;
+
+  const attackerIsActive = combat.attackerPlayer === activePlayer;
+  const atkPower = effectivePower(attacker, attackerIsActive);
+  const defPower = effectivePower(defender, !attackerIsActive) + combat.powerBoost;
+
+  const attackerLabel = combat.attackerPlayer === mySlot ? "You" : "Opponent";
+  const defenderLabel = combat.attackerPlayer === mySlot ? "Opponent" : "You";
+  const stepLabel =
+    combat.step === "block" ? "Block?" :
+    combat.step === "counter" ? "Counter?" :
+    "Resolving";
+
+  return (
+    <div className="flex items-center justify-center gap-2 text-xs font-mono border border-orange-300 bg-orange-50 rounded-md px-3 py-1.5 mb-1">
+      <span className="text-red-600 font-bold">
+        ⚔ {attackerLabel}: {attacker.card.name} <span className="text-red-800">{atkPower}</span>
+      </span>
+      <span className="text-ink-400">vs</span>
+      <span className="text-blue-600 font-bold">
+        {defenderLabel}: {defender.card.name} <span className="text-blue-800">{defPower}</span>
+      </span>
+      <span className="text-orange-600 ml-1">[{stepLabel}]</span>
+    </div>
+  );
+}
+
 export function ActionPanel({
   mySlot,
   phase,
@@ -59,29 +117,38 @@ export function ActionPanel({
       );
 
       return (
-        <div className="flex gap-2 flex-wrap justify-center">
-          {blockers.map((blocker) => (
+        <div className="space-y-1">
+          <CombatMatchup
+            combat={combat}
+            mySlot={mySlot}
+            myState={myState}
+            opponentState={opponentState}
+            activePlayer={activePlayer}
+          />
+          <div className="flex gap-2 flex-wrap justify-center">
+            {blockers.map((blocker) => (
+              <Button
+                key={blocker.instanceId}
+                size="sm"
+                onClick={() =>
+                  onAction({
+                    type: "DeclareBlocker",
+                    player: mySlot,
+                    blockerInstanceId: blocker.instanceId,
+                  })
+                }
+              >
+                Block with {blocker.card.name} ({blocker.card.power + blocker.attachedDon * 1000})
+              </Button>
+            ))}
             <Button
-              key={blocker.instanceId}
               size="sm"
-              onClick={() =>
-                onAction({
-                  type: "DeclareBlocker",
-                  player: mySlot,
-                  blockerInstanceId: blocker.instanceId,
-                })
-              }
+              variant="outline"
+              onClick={() => onAction({ type: "PassBlock", player: mySlot })}
             >
-              Block with {blocker.card.name}
+              No Block
             </Button>
-          ))}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onAction({ type: "PassBlock", player: mySlot })}
-          >
-            No Block
-          </Button>
+          </div>
         </div>
       );
     }
@@ -90,50 +157,62 @@ export function ActionPanel({
       const counterCards = myState.hand.filter((c) => c.card.counter > 0);
 
       return (
-        <div className="flex gap-2 flex-wrap justify-center">
-          {counterCards.map((card) => (
+        <div className="space-y-1">
+          <CombatMatchup
+            combat={combat}
+            mySlot={mySlot}
+            myState={myState}
+            opponentState={opponentState}
+            activePlayer={activePlayer}
+          />
+          <div className="flex gap-2 flex-wrap justify-center">
+            {counterCards.map((card) => (
+              <Button
+                key={card.instanceId}
+                size="sm"
+                onClick={() =>
+                  onAction({
+                    type: "UseCounter",
+                    player: mySlot,
+                    cardInstanceId: card.instanceId,
+                  })
+                }
+              >
+                Counter +{card.card.counter} ({card.card.name})
+              </Button>
+            ))}
             <Button
-              key={card.instanceId}
               size="sm"
-              onClick={() =>
-                onAction({
-                  type: "UseCounter",
-                  player: mySlot,
-                  cardInstanceId: card.instanceId,
-                })
-              }
+              variant="outline"
+              onClick={() => onAction({ type: "PassCounter", player: mySlot })}
             >
-              Counter +{card.card.counter} ({card.card.name})
+              No Counter
             </Button>
-          ))}
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => onAction({ type: "PassCounter", player: mySlot })}
-          >
-            No Counter
-          </Button>
+          </div>
         </div>
       );
     }
 
-    if (!isDefender) {
-      return (
+    // Attacker waiting for opponent's response
+    return (
+      <div className="space-y-1">
+        <CombatMatchup
+          combat={combat}
+          mySlot={mySlot}
+          myState={myState}
+          opponentState={opponentState}
+          activePlayer={activePlayer}
+        />
         <div className="text-center text-sm text-ink-400">
           Waiting for opponent to {combat.step === "block" ? "block" : "counter"}...
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   if (!isMyTurn) {
     return <div className="text-center text-sm text-ink-400">Opponent&apos;s turn — waiting...</div>;
   }
-
-  const selectedCard = selectedCardId
-    ? myState.hand.find((c) => c.instanceId === selectedCardId) ??
-      myState.characterArea.find((c) => c.instanceId === selectedCardId)
-    : null;
 
   const handCard = selectedCardId
     ? myState.hand.find((c) => c.instanceId === selectedCardId)
@@ -143,6 +222,13 @@ export function ActionPanel({
     ? myState.characterArea.find((c) => c.instanceId === selectedCardId) ??
       (myState.leader.instanceId === selectedCardId ? myState.leader : null)
     : null;
+
+  // Determine attack target: explicit selection, or default to leader
+  const attackTarget = selectedTargetId
+    ? (opponentState.leader.instanceId === selectedTargetId
+        ? opponentState.leader
+        : opponentState.characterArea.find((c) => c.instanceId === selectedTargetId))
+    : opponentState.leader;
 
   return (
     <div className="flex gap-2 flex-wrap justify-center">
@@ -220,7 +306,7 @@ export function ActionPanel({
         );
       })()}
 
-      {phase === "Main" && attackerCard && (
+      {phase === "Main" && attackerCard && attackTarget && (
         <Button
           size="sm"
           variant="secondary"
@@ -229,11 +315,12 @@ export function ActionPanel({
               type: "DeclareAttack",
               player: mySlot,
               attackerInstanceId: attackerCard.instanceId,
-              targetInstanceId: selectedTargetId ?? opponentState.leader.instanceId,
+              targetInstanceId: attackTarget.instanceId,
             })
           }
         >
-          Attack{selectedTargetId ? "" : " Leader"}
+          {attackerCard.card.name} ({effectivePower(attackerCard, true)}) ⚔{" "}
+          {attackTarget.card.name} ({effectivePower(attackTarget, false)})
         </Button>
       )}
 

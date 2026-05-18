@@ -55,6 +55,30 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
     [onAction],
   );
 
+  // Derived selection context
+  const selectedHandCard = selectedCardId
+    ? me.hand.find((c) => c.instanceId === selectedCardId) ?? null
+    : null;
+
+  const selectedAttacker = selectedCardId
+    ? (me.characterArea.find((c) => c.instanceId === selectedCardId) ??
+       (me.leader.instanceId === selectedCardId ? me.leader : null))
+    : null;
+
+  // Attack highlight modes: only during Main phase on my turn with no active combat
+  const isAttackPhase =
+    state.phase === "Main" && state.activePlayer === mySlot && !state.combat;
+
+  // My chars/leader glow green when no card/attacker is selected yet (or always when in attack phase)
+  const myAttackerMode = isAttackPhase ? "attacker" as const : null;
+  const myLeaderIsAttacker =
+    isAttackPhase && !me.leader.rested && !me.leader.summoningSickness;
+
+  // Opp chars/leader glow red once an attacker is picked
+  const oppTargetMode =
+    isAttackPhase && !!selectedAttacker ? "target" as const : null;
+  const oppLeaderIsTarget = isAttackPhase && !!selectedAttacker;
+
   return (
     <div className="flex flex-col gap-2 w-full max-w-3xl mx-auto px-2">
       {/* Phase indicator */}
@@ -76,6 +100,7 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
           <LeaderView
             leader={opp.leader}
             selected={selectedTargetId === opp.leader.instanceId}
+            isAttackTarget={oppLeaderIsTarget}
             onClick={() => handleSelectTarget(opp.leader.instanceId)}
           />
           <DeckPile count={opp.deck.length} />
@@ -85,6 +110,7 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
           characters={opp.characterArea}
           selectedId={selectedTargetId}
           onSelect={handleSelectTarget}
+          mode={oppTargetMode}
         />
       </div>
 
@@ -108,12 +134,14 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
           characters={me.characterArea}
           selectedId={selectedCardId}
           onSelect={handleSelectCard}
+          mode={myAttackerMode}
         />
         <div className="flex items-center justify-center gap-2 sm:gap-4">
           <LifeStack count={me.life.length} />
           <LeaderView
             leader={me.leader}
             selected={selectedCardId === me.leader.instanceId}
+            isAttacker={myLeaderIsAttacker}
             onClick={() => handleSelectCard(me.leader.instanceId)}
           />
           <DeckPile count={me.deck.length} />

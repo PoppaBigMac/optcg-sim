@@ -7,9 +7,10 @@ interface CharacterAreaProps {
   characters: readonly CardInstance[];
   selectedId: string | null;
   onSelect: (instanceId: string) => void;
+  mode?: "attacker" | "target" | null;
 }
 
-export function CharacterArea({ characters, selectedId, onSelect }: CharacterAreaProps) {
+export function CharacterArea({ characters, selectedId, onSelect, mode }: CharacterAreaProps) {
   return (
     <div className="flex gap-1 justify-center min-h-[4.5rem] sm:min-h-[7.5rem]">
       {characters.length === 0 && (
@@ -22,6 +23,8 @@ export function CharacterArea({ characters, selectedId, onSelect }: CharacterAre
           key={card.instanceId}
           card={card}
           selected={selectedId === card.instanceId}
+          isValidAttacker={mode === "attacker" && !card.rested && !card.summoningSickness}
+          isValidTarget={mode === "target" && card.rested}
           onClick={() => onSelect(card.instanceId)}
         />
       ))}

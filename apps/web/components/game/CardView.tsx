@@ -9,9 +9,11 @@ interface CardViewProps {
   onClick?: () => void;
   faceDown?: boolean;
   size?: "sm" | "md";
+  isValidAttacker?: boolean;
+  isValidTarget?: boolean;
 }
 
-export function CardView({ card, selected, onClick, faceDown, size = "md" }: CardViewProps) {
+export function CardView({ card, selected, onClick, faceDown, size = "md", isValidAttacker, isValidTarget }: CardViewProps) {
   if (faceDown) {
     return (
       <div
@@ -46,6 +48,8 @@ export function CardView({ card, selected, onClick, faceDown, size = "md" }: Car
         colorClass,
         size === "md" ? "w-16 h-22 sm:w-20 sm:h-28 text-[10px] sm:text-xs" : "w-12 h-16 text-[8px]",
         selected && "ring-2 ring-orange-500 ring-offset-1 scale-105",
+        !selected && isValidAttacker && "ring-2 ring-green-500 ring-offset-1",
+        !selected && isValidTarget && "ring-2 ring-red-400 ring-offset-1",
         card.rested && "rotate-12 opacity-80",
       )}
     >

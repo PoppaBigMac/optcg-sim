@@ -7,9 +7,11 @@ interface LeaderViewProps {
   leader: CardInstance;
   selected?: boolean;
   onClick?: () => void;
+  isAttacker?: boolean;
+  isAttackTarget?: boolean;
 }
 
-export function LeaderView({ leader, selected, onClick }: LeaderViewProps) {
+export function LeaderView({ leader, selected, onClick, isAttacker, isAttackTarget }: LeaderViewProps) {
   const color = leader.card.colors[0] ?? "Red";
   const colorMap: Record<string, string> = {
     Red: "border-red-500 bg-red-100",
@@ -24,6 +26,8 @@ export function LeaderView({ leader, selected, onClick }: LeaderViewProps) {
         "rounded-lg border-2 p-1.5 sm:p-2 text-center cursor-pointer transition-all w-20 sm:w-24",
         colorMap[color] ?? "border-ink-300 bg-ink-50",
         selected && "ring-2 ring-orange-500 ring-offset-1 scale-105",
+        !selected && isAttacker && "ring-2 ring-green-500 ring-offset-1",
+        !selected && isAttackTarget && "ring-2 ring-red-400 ring-offset-1",
         leader.rested && "rotate-12 opacity-80",
       )}
     >
