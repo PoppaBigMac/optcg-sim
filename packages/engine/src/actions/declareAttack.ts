@@ -3,6 +3,7 @@ import type { GameState } from "../state";
 import type { CombatState } from "../state";
 import type { ValidationResult } from "./types";
 import { getPlayer, setPlayer, opponent } from "../state";
+import { hasRush } from "../keywords";
 
 type DeclareAttackAction = Extract<Action, { type: "DeclareAttack" }>;
 
@@ -34,7 +35,7 @@ export function validate(state: GameState, action: DeclareAttackAction): Validat
   if (attacker.rested) {
     return { ok: false, reason: "Attacker is rested and cannot attack" };
   }
-  if (attacker.summoningSickness) {
+  if (attacker.summoningSickness && !hasRush(attacker)) {
     return { ok: false, reason: "Attacker has summoning sickness" };
   }
 
