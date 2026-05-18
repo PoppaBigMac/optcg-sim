@@ -3,6 +3,8 @@ import type { GameState } from "./state";
 import type { ActionResult } from "./actions/types";
 import * as mulligan from "./actions/mulligan";
 import * as playCharacter from "./actions/playCharacter";
+import * as playStage from "./actions/playStage";
+import * as playEvent from "./actions/playEvent";
 import * as giveDon from "./actions/giveDon";
 import * as declareAttack from "./actions/declareAttack";
 import * as declareBlocker from "./actions/declareBlocker";
@@ -31,6 +33,18 @@ export function applyAction(state: GameState, action: Action): ActionResult {
       validationResult = playCharacter.validate(state, action);
       if (!validationResult.ok) return validationResult;
       nextState = playCharacter.apply(state, action);
+      break;
+
+    case "PlayStage":
+      validationResult = playStage.validate(state, action);
+      if (!validationResult.ok) return validationResult;
+      nextState = playStage.apply(state, action);
+      break;
+
+    case "PlayEvent":
+      validationResult = playEvent.validate(state, action);
+      if (!validationResult.ok) return validationResult;
+      nextState = playEvent.apply(state, action);
       break;
 
     case "GiveDon":
