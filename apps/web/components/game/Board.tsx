@@ -25,24 +25,30 @@ interface BoardProps {
 export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
   const [selectedCardId, setSelectedCardId] = useState<string | null>(null);
   const [selectedTargetId, setSelectedTargetId] = useState<string | null>(null);
-  const [selectedDonIds, setSelectedDonIds] = useState<string[]>([]);
+  const [selectedDonId, setSelectedDonId] = useState<string | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
 
   const me = getPlayer(state, mySlot);
   const opp = getPlayer(state, opponent(mySlot));
 
+  const selectedHandCard = selectedCardId
+    ? me.hand.find((c) => c.instanceId === selectedCardId) ?? null
+    : null;
+
   const handleSelectCard = useCallback((id: string) => {
     setSelectedCardId((prev) => (prev === id ? null : id));
     setSelectedTargetId(null);
+    setSelectedDonId(null);
   }, []);
 
   const handleSelectTarget = useCallback((id: string) => {
     setSelectedTargetId((prev) => (prev === id ? null : id));
   }, []);
 
-  const handleToggleDon = useCallback((id: string) => {
-    setSelectedDonIds((prev) =>
-      prev.includes(id) ? prev.filter((d) => d !== id) : [...prev, id],
-    );
+  const handleSelectDon = useCallback((donId: string) => {
+    setSelectedDonId((prev) => (prev === donId ? null : donId));
+    setSelectedCardId(null);
+    setSelectedTargetId(null);
   }, []);
 
   const handleAction = useCallback(
@@ -50,112 +56,151 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
       onAction(action);
       setSelectedCardId(null);
       setSelectedTargetId(null);
-      setSelectedDonIds([]);
+      setSelectedDonId(null);
     },
     [onAction],
   );
 
-  // Derived selection context
-  const selectedHandCard = selectedCardId
-    ? me.hand.find((c) => c.instanceId === selectedCardId) ?? null
-    : null;
+  // Click on my char/leader: attach selected DON if one is active, otherwise select as attacker
+  const handleMyClick = useCallback(
+    (id: string) => {
+      if (selectedDonId) {
+        handleAction({
+          type: "GiveDon",
+          player: mySlot,
+          donInstanceId: selectedDonId,
+          targetInstanceId: id,
+        });
+      } else {
+        setSelectedCardId((prev) => (prev === id ? null : id));
+        setSelectedTargetId(null);
+        setSelectedDonId(null);
+      }
+    },
+    [selectedDonId, mySlot, handleAction],
+  );
+
+  const canAttachDon = state.phase === "Main" && state.activePlayer === mySlot;
+
+  // Attack highlight modes: only during Main phase on my turn with no active combat
+  const isAttackPhase =
+    state.phase === "Main" && state.activePlayer === mySlot && !state.combat;
 
   const selectedAttacker = selectedCardId
     ? (me.characterArea.find((c) => c.instanceId === selectedCardId) ??
        (me.leader.instanceId === selectedCardId ? me.leader : null))
     : null;
 
-  // Attack highlight modes: only during Main phase on my turn with no active combat
-  const isAttackPhase =
-    state.phase === "Main" && state.activePlayer === mySlot && !state.combat;
-
-  // My chars/leader glow green when no card/attacker is selected yet (or always when in attack phase)
   const myAttackerMode = isAttackPhase ? "attacker" as const : null;
   const myLeaderIsAttacker =
     isAttackPhase && !me.leader.rested && !me.leader.summoningSickness;
 
-  // Opp chars/leader glow red once an attacker is picked
   const oppTargetMode =
     isAttackPhase && !!selectedAttacker ? "target" as const : null;
   const oppLeaderIsTarget = isAttackPhase && !!selectedAttacker;
 
   return (
-    <div className="flex flex-col gap-2 w-full max-w-3xl mx-auto px-2">
-      {/* Phase indicator */}
-      <PhaseIndicator
-        phase={state.phase}
-        activePlayer={state.activePlayer}
-        mySlot={mySlot}
-        turn={state.turnNumber}
-      />
-
-      {/* Opponent area */}
-      <div className="border border-ink-200 rounded-lg p-2 bg-ink-50 space-y-1">
-        <div className="flex items-center justify-between text-xs text-ink-400 px-1">
-          <span>Opponent ({opponent(mySlot)})</span>
-        </div>
-        <Hand cards={opp.hand} isOpponent selectedId={null} onSelect={() => {}} />
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
-          <LifeStack count={opp.life.length} />
-          <LeaderView
-            leader={opp.leader}
-            selected={selectedTargetId === opp.leader.instanceId}
-            isAttackTarget={oppLeaderIsTarget}
-            onClick={() => handleSelectTarget(opp.leader.instanceId)}
+    <div className="flex items-stretch gap-2 w-full">
+      {/* Collapsible action log sidebar */}
+      <div
+        className={`self-stretch shrink-0 flex flex-col border border-ink-200 rounded-lg bg-white overflow-hidden transition-[width] duration-200 ${logOpen ? "w-52" : "w-8"}`}
+      >
+        <button
+          type="button"
+          onClick={() => setLogOpen((v) => !v)}
+          className="shrink-0 flex items-center justify-center h-8 text-ink-400 hover:bg-ink-50 hover:text-ink-600 text-xs font-mono"
+          title={logOpen ? "Collapse log" : "Expand log"}
+        >
+          {logOpen ? "◀" : "▶"}
+        </button>
+        <div className="flex-1 min-h-0 overflow-hidden">
+          <ActionLog
+            actions={actionLog}
+            className="h-full border-0 rounded-none"
           />
-          <DeckPile count={opp.deck.length} />
-          <Trash count={opp.trash.length} />
-        </div>
-        <CharacterArea
-          characters={opp.characterArea}
-          selectedId={selectedTargetId}
-          onSelect={handleSelectTarget}
-          mode={oppTargetMode}
-        />
-      </div>
-
-      {/* Action panel */}
-      <ActionPanel
-        mySlot={mySlot}
-        phase={state.phase}
-        activePlayer={state.activePlayer}
-        myState={me}
-        opponentState={opp}
-        combat={state.combat}
-        selectedCardId={selectedCardId}
-        selectedTargetId={selectedTargetId}
-        selectedDonIds={selectedDonIds}
-        onAction={handleAction}
-      />
-
-      {/* My area */}
-      <div className="border border-ink-200 rounded-lg p-2 bg-white space-y-1">
-        <CharacterArea
-          characters={me.characterArea}
-          selectedId={selectedCardId}
-          onSelect={handleSelectCard}
-          mode={myAttackerMode}
-        />
-        <div className="flex items-center justify-center gap-2 sm:gap-4">
-          <LifeStack count={me.life.length} />
-          <LeaderView
-            leader={me.leader}
-            selected={selectedCardId === me.leader.instanceId}
-            isAttacker={myLeaderIsAttacker}
-            onClick={() => handleSelectCard(me.leader.instanceId)}
-          />
-          <DeckPile count={me.deck.length} />
-          <Trash count={me.trash.length} />
-        </div>
-        <CostArea don={me.costArea} selectedIds={selectedDonIds} onToggle={handleToggleDon} />
-        <Hand cards={me.hand} isOpponent={false} selectedId={selectedCardId} onSelect={handleSelectCard} />
-        <div className="text-xs text-ink-400 text-center">
-          You ({mySlot})
         </div>
       </div>
 
-      {/* Action log */}
-      <ActionLog actions={actionLog} />
+      {/* Game board */}
+      <div className="flex-1 min-w-0 flex flex-col gap-2">
+        <PhaseIndicator
+          phase={state.phase}
+          activePlayer={state.activePlayer}
+          mySlot={mySlot}
+          turn={state.turnNumber}
+        />
+
+        {/* Opponent area */}
+        <div className="border border-ink-200 rounded-lg p-2 bg-ink-50 space-y-1">
+          <div className="flex items-center justify-between text-xs text-ink-400 px-1">
+            <span>Opponent ({opponent(mySlot)})</span>
+          </div>
+          <CostArea don={opp.costArea} isOpponent />
+          <Hand cards={opp.hand} isOpponent selectedId={null} onSelect={() => {}} />
+          <div className="flex items-center justify-center gap-2 sm:gap-4">
+            <LifeStack count={opp.life.length} />
+            <LeaderView
+              leader={opp.leader}
+              selected={selectedTargetId === opp.leader.instanceId}
+              isAttackTarget={oppLeaderIsTarget}
+              onClick={() => handleSelectTarget(opp.leader.instanceId)}
+            />
+            <DeckPile count={opp.deck.length} />
+            <Trash count={opp.trash.length} />
+          </div>
+          <CharacterArea
+            characters={opp.characterArea}
+            selectedId={selectedTargetId}
+            onSelect={handleSelectTarget}
+            mode={oppTargetMode}
+          />
+        </div>
+
+        <ActionPanel
+          mySlot={mySlot}
+          phase={state.phase}
+          activePlayer={state.activePlayer}
+          myState={me}
+          opponentState={opp}
+          combat={state.combat}
+          selectedCardId={selectedCardId}
+          selectedTargetId={selectedTargetId}
+          onAction={handleAction}
+        />
+
+        {/* My area */}
+        <div className="border border-ink-200 rounded-lg p-2 bg-white space-y-1">
+          <CharacterArea
+            characters={me.characterArea}
+            selectedId={selectedCardId}
+            onSelect={handleMyClick}
+            mode={myAttackerMode}
+            donAttachMode={!!selectedDonId}
+          />
+          <div className="flex items-center justify-center gap-2 sm:gap-4">
+            <LifeStack count={me.life.length} />
+            <LeaderView
+              leader={me.leader}
+              selected={selectedCardId === me.leader.instanceId}
+              isAttacker={myLeaderIsAttacker}
+              highlightAsTarget={!!selectedDonId}
+              onClick={() => handleMyClick(me.leader.instanceId)}
+            />
+            <DeckPile count={me.deck.length} />
+            <Trash count={me.trash.length} />
+          </div>
+          <CostArea
+            don={me.costArea}
+            pendingCost={selectedHandCard?.card.cost ?? 0}
+            selectedDonId={selectedDonId}
+            onSelectDon={canAttachDon && !selectedHandCard ? handleSelectDon : undefined}
+          />
+          <Hand cards={me.hand} isOpponent={false} selectedId={selectedCardId} onSelect={handleSelectCard} />
+          <div className="text-xs text-ink-400 text-center">
+            You ({mySlot})
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

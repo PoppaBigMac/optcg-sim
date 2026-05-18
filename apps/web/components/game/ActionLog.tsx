@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import type { Action } from "@optcg/shared-types";
+import { cn } from "@/lib/utils";
 
 function describeAction(action: Action): string {
   switch (action.type) {
@@ -36,9 +37,10 @@ function describeAction(action: Action): string {
 
 interface ActionLogProps {
   actions: readonly Action[];
+  className?: string;
 }
 
-export function ActionLog({ actions }: ActionLogProps) {
+export function ActionLog({ actions, className }: ActionLogProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -46,7 +48,7 @@ export function ActionLog({ actions }: ActionLogProps) {
   }, [actions.length]);
 
   return (
-    <div className="h-32 sm:h-48 overflow-y-auto border border-ink-200 rounded-md bg-white p-2 text-xs font-mono">
+    <div className={cn("h-32 sm:h-48 overflow-y-auto border border-ink-200 rounded-md bg-white p-2 text-xs font-mono", className)}>
       {actions.length === 0 && (
         <div className="text-ink-300 text-center py-4">No actions yet</div>
       )}

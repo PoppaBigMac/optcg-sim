@@ -11,9 +11,10 @@ interface CardViewProps {
   size?: "sm" | "md";
   isValidAttacker?: boolean;
   isValidTarget?: boolean;
+  highlightAsTarget?: boolean;
 }
 
-export function CardView({ card, selected, onClick, faceDown, size = "md", isValidAttacker, isValidTarget }: CardViewProps) {
+export function CardView({ card, selected, onClick, faceDown, size = "md", isValidAttacker, isValidTarget, highlightAsTarget }: CardViewProps) {
   if (faceDown) {
     return (
       <div
@@ -50,6 +51,7 @@ export function CardView({ card, selected, onClick, faceDown, size = "md", isVal
         selected && "ring-2 ring-orange-500 ring-offset-1 scale-105",
         !selected && isValidAttacker && "ring-2 ring-green-500 ring-offset-1",
         !selected && isValidTarget && "ring-2 ring-red-400 ring-offset-1",
+        !selected && !isValidAttacker && !isValidTarget && highlightAsTarget && "ring-2 ring-blue-400 ring-offset-1",
         card.rested && "rotate-12 opacity-80",
       )}
     >

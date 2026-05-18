@@ -13,7 +13,6 @@ interface ActionPanelProps {
   combat: CombatState | null;
   selectedCardId: string | null;
   selectedTargetId: string | null;
-  selectedDonIds: string[];
   onAction: (action: Action) => void;
 }
 
@@ -84,10 +83,14 @@ export function ActionPanel({
   combat,
   selectedCardId,
   selectedTargetId,
-  selectedDonIds,
   onAction,
 }: ActionPanelProps) {
   const isMyTurn = activePlayer === mySlot;
+
+  const activeDon = myState.costArea.filter((d) => !d.rested);
+  const autoSelectDon = (cost: number): string[] =>
+    activeDon.slice(0, cost).map((d) => d.instanceId);
+  const canAfford = (cost: number): boolean => activeDon.length >= cost;
 
   if (phase === "Mulligan") {
     if (!myState.mulliganDone) {
@@ -223,7 +226,7 @@ export function ActionPanel({
       (myState.leader.instanceId === selectedCardId ? myState.leader : null)
     : null;
 
-  // Determine attack target: explicit selection, or default to leader
+  // Default attack target is opponent's leader
   const attackTarget = selectedTargetId
     ? (opponentState.leader.instanceId === selectedTargetId
         ? opponentState.leader
@@ -235,76 +238,56 @@ export function ActionPanel({
       {phase === "Main" && handCard && handCard.card.type === "Character" && (
         <Button
           size="sm"
+          disabled={!canAfford(handCard.card.cost)}
+          title={!canAfford(handCard.card.cost) ? `Need ${handCard.card.cost} DON` : undefined}
           onClick={() =>
             onAction({
               type: "PlayCharacter",
               player: mySlot,
               cardInstanceId: handCard.instanceId,
-              donToRest: selectedDonIds,
+              donToRest: autoSelectDon(handCard.card.cost),
             })
           }
         >
-          Play {handCard.card.name}
+          Play {handCard.card.name} ({handCard.card.cost} DON)
         </Button>
       )}
 
       {phase === "Main" && handCard && handCard.card.type === "Stage" && (
         <Button
           size="sm"
+          disabled={!canAfford(handCard.card.cost)}
+          title={!canAfford(handCard.card.cost) ? `Need ${handCard.card.cost} DON` : undefined}
           onClick={() =>
             onAction({
               type: "PlayStage",
               player: mySlot,
               cardInstanceId: handCard.instanceId,
-              donToRest: selectedDonIds,
+              donToRest: autoSelectDon(handCard.card.cost),
             })
           }
         >
-          Play Stage
+          Play Stage ({handCard.card.cost} DON)
         </Button>
       )}
 
       {phase === "Main" && handCard && handCard.card.type === "Event" && (
         <Button
           size="sm"
+          disabled={!canAfford(handCard.card.cost)}
+          title={!canAfford(handCard.card.cost) ? `Need ${handCard.card.cost} DON` : undefined}
           onClick={() =>
             onAction({
               type: "PlayEvent",
               player: mySlot,
               cardInstanceId: handCard.instanceId,
-              donToRest: selectedDonIds,
+              donToRest: autoSelectDon(handCard.card.cost),
             })
           }
         >
-          Play Event
+          Play Event ({handCard.card.cost} DON)
         </Button>
       )}
-
-      {phase === "Main" && selectedDonIds.length === 1 && (() => {
-        const donTarget = selectedCardId
-          ? (myState.leader.instanceId === selectedCardId
-              ? myState.leader
-              : myState.characterArea.find((c) => c.instanceId === selectedCardId)) ?? null
-          : null;
-        const targetId = donTarget ? donTarget.instanceId : myState.leader.instanceId;
-        const targetName = donTarget ? donTarget.card.name : myState.leader.card.name;
-        return (
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() =>
-              onAction({
-                type: "GiveDon",
-                player: mySlot,
-                donInstanceId: selectedDonIds[0],
-                targetInstanceId: targetId,
-              })
-            }
-          >
-            DON → {targetName}
-          </Button>
-        );
-      })()}
 
       {phase === "Main" && attackerCard && attackTarget && (
         <Button
