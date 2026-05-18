@@ -124,7 +124,7 @@ export default function LocalPlayPage() {
   return (
     <div className="min-h-screen bg-ink-50 py-4">
       <Toaster position="top-center" richColors />
-      <div className="max-w-3xl mx-auto px-2 space-y-2">
+      <div className="max-w-5xl mx-auto px-2 space-y-2">
         <div className="flex items-center justify-between text-sm">
           <div className="font-bold">
             Turn {state.turnNumber} &middot;{" "}
