@@ -38,7 +38,35 @@ export default function LocalPlayPage() {
   const handleAction = useCallback(
     (action: Action) => {
       if (!state) return;
-      const result = applyAction(state, action);
+
+      // Recompute donToRest from the authoritative engine state rather than
+      // trusting the value the UI built at render time. ActionPanel's
+      // autoSelectDon closes over activeDon from the last render; if React
+      // hasn't committed a re-render yet (e.g. immediately after an
+      // auto-view-switch), those IDs can be stale or belong to the wrong
+      // player, causing the "Must rest exactly N DON" validation error.
+      let patchedAction = action;
+      if (
+        action.type === "PlayCharacter" ||
+        action.type === "PlayStage" ||
+        action.type === "PlayEvent"
+      ) {
+        const player = getPlayer(state, action.player);
+        const cardInHand = player.hand.find(
+          (c) => c.instanceId === action.cardInstanceId,
+        );
+        if (cardInHand) {
+          const activeDon = player.costArea.filter((d) => !d.rested);
+          patchedAction = {
+            ...action,
+            donToRest: activeDon
+              .slice(0, cardInHand.card.cost)
+              .map((d) => d.instanceId),
+          };
+        }
+      }
+
+      const result = applyAction(state, patchedAction);
       if (!result.ok) {
         toast.error(result.reason);
         return;
