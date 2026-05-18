@@ -57,7 +57,7 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
   );
 
   return (
-    <div className="flex items-start gap-2 w-full">
+    <div className="flex items-stretch gap-2 w-full">
       {/* Game board */}
       <div className="flex-1 min-w-0 flex flex-col gap-2">
         <PhaseIndicator
@@ -130,7 +130,7 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
 
       {/* Collapsible action log sidebar */}
       <div
-        className={`shrink-0 flex flex-col border border-ink-200 rounded-lg bg-white overflow-hidden transition-[width] duration-200${logOpen ? " w-52" : " w-8"}`}
+        className={`self-stretch shrink-0 flex flex-col border border-ink-200 rounded-lg bg-white overflow-hidden transition-[width] duration-200 ${logOpen ? "w-52" : "w-8"}`}
       >
         <button
           type="button"
@@ -140,12 +140,12 @@ export function Board({ state, mySlot, actionLog, onAction }: BoardProps) {
         >
           {logOpen ? "▶" : "◀"}
         </button>
-        {logOpen && (
+        <div className="flex-1 min-h-0 overflow-hidden">
           <ActionLog
             actions={actionLog}
-            className="h-auto max-h-[520px] border-0 rounded-none"
+            className="h-full border-0 rounded-none"
           />
-        )}
+        </div>
       </div>
     </div>
   );
